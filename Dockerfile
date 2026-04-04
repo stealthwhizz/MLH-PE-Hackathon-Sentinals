@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.13-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -7,18 +7,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # Build dependencies are required for PostgreSQL client libraries.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential libpq-dev \
+RUN apt-get update -o Acquire::Retries=5 \
+    && apt-get install -y --no-install-recommends --fix-missing build-essential libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml requirements.txt README.md ./
 
 RUN pip install --upgrade pip setuptools wheel \
+    && pip install -r requirements.txt \
     && pip install \
-        "flask>=3.1" \
-        "peewee>=3.17" \
-        "psycopg2-binary>=2.9" \
-        "python-dotenv>=1.0" \
         "faker>=33.0" \
         "gunicorn>=22.0"
 
