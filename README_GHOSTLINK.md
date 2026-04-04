@@ -45,6 +45,8 @@ Exposes at `GET /metrics` for Prometheus scraping:
 
 ## API Endpoints
 
+For a concise endpoint matrix with curl examples and status-code behavior, see `docs/API_REFERENCE.md`.
+
 ### POST /shorten
 Create a shortened URL.
 
