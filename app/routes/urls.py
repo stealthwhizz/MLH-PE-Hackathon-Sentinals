@@ -89,6 +89,12 @@ def shorten_url():
         return jsonify({"error": "Short code exists", "code": 409}), 409
 
 
+@urls_bp.route("/urls", methods=["POST"])
+def create_url():
+    """Compatibility endpoint: create a URL via /urls."""
+    return shorten_url()
+
+
 @urls_bp.route("/<short_code>", methods=["GET"])
 def redirect_url(short_code):
     """Redirect to the original URL."""
@@ -171,7 +177,17 @@ def redirect_url(short_code):
     return redirect(url.original_url, code=302)
 
 
-@urls_bp.route("/urls/<int:url_id>", methods=["PATCH"])
+@urls_bp.route("/urls/<int:url_id>", methods=["GET"])
+def get_url(url_id):
+    """Get a URL by id."""
+    url = Url.select().where(Url.id == url_id).first()
+    if not url:
+        return jsonify({"error": "Not found", "code": 404}), 404
+
+    return jsonify(model_to_dict(url)), 200
+
+
+@urls_bp.route("/urls/<int:url_id>", methods=["PATCH", "PUT"])
 def update_url(url_id):
     """Update a URL (title, original_url, is_active)."""
     data = request.get_json(silent=True)
@@ -245,10 +261,18 @@ def get_url_risk(url_id):
 def list_urls():
     """List all URLs, optionally filtered by user_id."""
     user_id = request.args.get("user_id", type=int)
+    is_active = request.args.get("is_active")
 
     query = Url.select()
-    if user_id:
+    if user_id is not None:
         query = query.where(Url.user_id == user_id)
+
+    if is_active is not None:
+        normalized = is_active.strip().lower()
+        if normalized in {"1", "true", "yes"}:
+            query = query.where(Url.is_active == True)
+        elif normalized in {"0", "false", "no"}:
+            query = query.where(Url.is_active == False)
 
     urls = [model_to_dict(url) for url in query]
     return jsonify(urls), 200

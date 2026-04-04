@@ -94,6 +94,7 @@ def load_events_csv(filepath):
                     "url_id": int(row["url_id"]),
                     "user_id": user_id,
                     "event_type": row["event_type"],
+                    "details": row.get("details") or None,
                     "timestamp": row.get("timestamp", utc_now_naive()),
                 },
             )
