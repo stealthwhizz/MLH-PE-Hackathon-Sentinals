@@ -75,10 +75,9 @@ def shorten_url():
 @urls_bp.route("/<short_code>", methods=["GET"])
 def redirect_url(short_code):
     """Redirect to the original URL."""
-    cached = cache.get_cached_url(short_code)
-    if cached:
-        return redirect(cached, code=302)
-
+    # Check database for URL and active status
+    # Note: We don't use cache here to ensure we always check is_active status
+    # This prevents redirecting to deactivated URLs that might still be cached
     url = Url.select().where(Url.short_code == short_code).first()
 
     if not url:
@@ -87,8 +86,6 @@ def redirect_url(short_code):
     if not url.is_active:
         increment_ghost_probes()
         return jsonify({"error": "Link inactive", "code": 410}), 410
-
-    cache.cache_url(short_code, url.original_url)
 
     return redirect(url.original_url, code=302)
 
