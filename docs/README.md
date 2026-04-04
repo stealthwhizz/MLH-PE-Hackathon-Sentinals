@@ -37,6 +37,7 @@ git clone https://github.com/stealthwhizz/MLH-PE-Hackathon-Sentinals.git && cd M
 - docs/README.md
 - docs/RUNBOOK.md
 - docs/CAPACITY.md
+- docs/FAILURE_EDGE_CASES.md
 
 ## Service and Container Names
 
@@ -189,3 +190,7 @@ docker compose exec -T prometheus promtool check rules /etc/prometheus/alert_rul
 ```bash
 k6 run k6/load_test.js
 ```
+
+## Failure and Edge Cases
+
+Detailed API and operational failure handling behavior is documented in `docs/FAILURE_EDGE_CASES.md`.
