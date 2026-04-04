@@ -35,6 +35,7 @@ git clone https://github.com/stealthwhizz/MLH-PE-Hackathon-Sentinals.git && cd M
 - scripts/security_metrics_exporter.py
 - Makefile
 - docs/README.md
+- docs/API_REFERENCE.md
 - docs/RUNBOOK.md
 - docs/CAPACITY.md
 - docs/FAILURE_EDGE_CASES.md
@@ -194,3 +195,7 @@ k6 run k6/load_test.js
 ## Failure and Edge Cases
 
 Detailed API and operational failure handling behavior is documented in `docs/FAILURE_EDGE_CASES.md`.
+
+## API Endpoint Reference
+
+Concrete endpoint docs and curl examples are documented in `docs/API_REFERENCE.md`.
