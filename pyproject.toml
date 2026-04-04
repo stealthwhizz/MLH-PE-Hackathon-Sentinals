@@ -1,11 +1,17 @@
 [project]
 name = "mlh-pe-hackathon"
 version = "0.1.0"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
-    "faker>=33.0",
     "flask>=3.1",
     "peewee>=3.17",
     "psycopg2-binary>=2.9",
     "python-dotenv>=1.0",
+    "redis>=5.0",
+    "APScheduler>=3.10",
+    "prometheus-client>=0.19",
+    "python-whois>=0.8",
+    "requests>=2.31",
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
 ]

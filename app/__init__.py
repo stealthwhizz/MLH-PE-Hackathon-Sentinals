@@ -1,8 +1,9 @@
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask
 
 from app.database import init_db
 from app.routes import register_routes
+from app.services.link_health import start_health_checker
 
 
 def create_app():
@@ -12,12 +13,10 @@ def create_app():
 
     init_db(app)
 
-    from app import models  # noqa: F401 - registers models with Peewee
+    from app import models
 
     register_routes(app)
 
-    @app.route("/health")
-    def health():
-        return jsonify(status="ok")
+    start_health_checker()
 
     return app

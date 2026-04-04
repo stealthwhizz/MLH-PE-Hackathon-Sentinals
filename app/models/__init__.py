@@ -1,3 +1,7 @@
-# Import your models here so Peewee registers them.
-# Example:
-#   from app.models.product import Product
+from app.models.event import Event
+from app.models.health_check import HealthCheck
+from app.models.risk_score import RiskScore
+from app.models.url import Url
+from app.models.user import User
+
+__all__ = ["Url", "User", "Event", "HealthCheck", "RiskScore"]
