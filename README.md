@@ -1,55 +1,42 @@
-# MLH PE Hackathon — Flask + Peewee + PostgreSQL Template
+# GhostLink
 
-A minimal hackathon starter template. You get the scaffolding and database wiring — you build the models, routes, and CSV loading logic.
+A URL shortener built for the MLH Production Engineering Hackathon 2026.
 
-**Stack:** Flask · Peewee ORM · PostgreSQL · uv
+GhostLink shortens URLs, tracks redirect events, scores link risk, and monitors link health. It runs behind Nginx with two app replicas, exposes Prometheus metrics, and ships with Grafana dashboards and Alertmanager rules.
 
-## GhostLink Production Engineering Extensions
+**Stack:** Flask · Peewee ORM · PostgreSQL · Redis · Nginx · Prometheus · Grafana · Docker Compose · uv
 
-This repository now includes a production-engineering security stack for GhostLink with:
+**Team:** Sentinals
 
-- automatic quarantine mode in Nginx
-- synthetic canary monitoring
-- threat timeline and link risk scoring metrics
-- suspicious client fingerprinting metrics
-- chaos demo commands via `Makefile`
+---
 
-Operational details are documented in `docs/README.md`, `docs/RUNBOOK.md`, and `docs/CAPACITY.md`.
+## What it does
 
-## **Important**
+- Shorten URLs with auto-generated or custom short codes
+- Redirect users via `GET /<short_code>`
+- Track click events with referrer and user attribution
+- Score link risk based on five signals (dead destination, ghost probes, suspicious clients, canary failures, threat patterns)
+- Quarantine high-risk short codes via Nginx without taking the app down
+- Expose Prometheus metrics at `GET /metrics`
+- Report health status at `GET /health`
 
-You need to work with around the seed files that you can find in [MLH PE Hackathon](https://mlh-pe-hackathon.com) platform. This will help you build the schema for the database and have some data to do some testing and submit your project for judging. If you need help with this, reach out on Discord or on the Q&A tab on the platform.
+---
 
 ## Prerequisites
 
-- **uv** — a fast Python package manager that handles Python versions, virtual environments, and dependencies automatically.
-  Install it with:
-  ```bash
-  # macOS / Linux
-  curl -LsSf https://astral.sh/uv/install.sh | sh
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) — Python package manager
+- PostgreSQL running locally or via Docker
+- Redis running locally or via Docker (optional — app works without it)
+- Docker + Docker Compose (for the full production stack)
 
-  # Windows (PowerShell)
-  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-  ```
-  For other methods see the [uv installation docs](https://docs.astral.sh/uv/getting-started/installation/).
-- PostgreSQL running locally (you can use Docker or a local instance)
+---
 
-## uv Basics
-
-`uv` manages your Python version, virtual environment, and dependencies automatically — no manual `python -m venv` needed.
-
-| Command | What it does |
-|---------|--------------|
-| `uv sync` | Install all dependencies (creates `.venv` automatically) |
-| `uv run <script>` | Run a script using the project's virtual environment |
-| `uv add <package>` | Add a new dependency |
-| `uv remove <package>` | Remove a dependency |
-
-## Quick Start
+## Quick Start (local)
 
 ```bash
 # 1. Clone the repo
-git clone <repo-url> && cd mlh-pe-hackathon
+git clone https://github.com/stealthwhizz/MLH-PE-Hackathon-Sentinals.git
+cd MLH-PE-Hackathon-Sentinals
 
 # 2. Install dependencies
 uv sync
@@ -65,140 +52,174 @@ uv run run.py
 
 # 6. Verify
 curl http://localhost:5000/health
-# → {"status":"ok"}
+# → {"db": "ok", "redis": "unavailable", "status": "ok"}
 ```
+
+Tables are created automatically on startup. No migration step needed.
+
+---
+
+## Quick Start (Docker)
+
+```bash
+# Start the full stack: Nginx + 2 app replicas + Postgres + Redis + Prometheus + Grafana
+docker compose up
+
+# Verify
+curl http://localhost/health
+```
+
+---
+
+## Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_NAME` | `hackathon_db` | Postgres database name |
+| `DATABASE_HOST` | `localhost` | Postgres host |
+| `DATABASE_PORT` | `5432` | Postgres port |
+| `DATABASE_USER` | `postgres` | Postgres user |
+| `DATABASE_PASSWORD` | `postgres` | Postgres password |
+| `REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL |
+
+---
+
+## API Endpoints
+
+### Health
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/health` | Returns DB and Redis status |
+| `GET` | `/metrics` | Prometheus metrics |
+
+### URLs
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/urls` | Create a short URL |
+| `GET` | `/urls` | List all URLs (supports `?user_id=1&is_active=true`) |
+| `GET` | `/urls/<id>` | Get a URL by ID |
+| `PUT` | `/urls/<id>` | Update title or is_active |
+| `DELETE` | `/urls/<id>` | Soft delete a URL |
+| `GET` | `/<short_code>` | Redirect to original URL |
+
+### Users
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/users` | Create a user |
+| `GET` | `/users` | List all users (supports `?page=1&per_page=10`) |
+| `GET` | `/users/<id>` | Get a user by ID |
+| `PUT` | `/users/<id>` | Update a user |
+| `DELETE` | `/users/<id>` | Delete a user |
+| `POST` | `/users/bulk` | Bulk import from CSV |
+
+### Events
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/events` | Create an event |
+| `GET` | `/events` | List events (supports `?url_id=1&user_id=1&event_type=click`) |
+
+Full request and response shapes are documented in [docs/API_REFERENCE.md](docs/API_REFERENCE.md).
+
+---
+
+## Seed Data
+
+CSV files are in `data/`. Load them via the bulk endpoint or the seed script:
+
+```bash
+# Via seed script
+uv run scripts/seed.py
+
+# Via API
+curl -X POST http://localhost:5000/users/bulk \
+  -H "Content-Type: application/json" \
+  -d '{"file": "users.csv", "row_count": 400}'
+```
+
+---
+
+## Running Tests
+
+```bash
+# Run all tests
+uv run pytest app/tests/
+
+# Run with coverage
+uv run pytest --cov=app --cov-report=term app/tests/
+
+# Run unit tests only
+uv run pytest app/tests/test_unit.py -v
+```
+
+CI runs the full suite on every push to `main` via GitHub Actions.
+
+---
 
 ## Project Structure
 
 ```
-mlh-pe-hackathon/
+MLH-PE-Hackathon-Sentinals/
 ├── app/
-│   ├── __init__.py          # App factory (create_app)
-│   ├── database.py          # DatabaseProxy, BaseModel, connection hooks
+│   ├── __init__.py              # App factory, table creation on startup
+│   ├── database.py              # DB + Redis connection management
 │   ├── models/
-│   │   └── __init__.py      # Import your models here
-│   └── routes/
-│       └── __init__.py      # register_routes() — add blueprints here
-├── .env.example             # DB connection template
-├── .gitignore               # Python + uv gitignore
-├── .python-version          # Pin Python version for uv
-├── pyproject.toml           # Project metadata + dependencies
-├── run.py                   # Entry point: uv run run.py
-└── README.md
+│   │   ├── user.py
+│   │   ├── url.py
+│   │   ├── event.py
+│   │   ├── health_check.py
+│   │   ├── risk_score.py
+│   │   └── request_fingerprint.py
+│   ├── routes/
+│   │   ├── users.py
+│   │   ├── urls.py
+│   │   ├── events.py
+│   │   └── health.py
+│   ├── services/
+│   │   ├── cache.py             # Redis caching with TTL
+│   │   ├── shortener.py         # Short code generation
+│   │   ├── risk_scorer.py       # 5-signal risk scoring
+│   │   ├── link_health.py       # Background health checker
+│   │   └── security.py          # Quarantine and fingerprinting
+│   └── tests/
+│       ├── conftest.py
+│       ├── test_unit.py
+│       ├── test_integration.py
+│       └── test_api_compat.py
+├── data/
+│   ├── users.csv
+│   ├── urls.csv
+│   └── events.csv
+├── docs/
+│   ├── API_REFERENCE.md
+│   ├── ARCHITECTURE.md
+│   ├── CAPACITY.md
+│   ├── FAILURE_EDGE_CASES.md
+│   └── RUNBOOK.md
+├── nginx/nginx.conf             # Nginx with round-robin upstream + quarantine
+├── prometheus/
+│   ├── prometheus.yml
+│   └── alert_rules.yml
+├── alertmanager/alertmanager.yml
+├── grafana/dashboards/ghostlink.json
+├── k6/load_test.js              # Load test: 50 / 200 / 500 concurrent users
+├── scripts/
+│   ├── seed.py
+│   └── setup_db.py
+├── DECISIONS.md                 # Architecture decision log
+├── docker-compose.yml
+├── run.py
+└── pyproject.toml
 ```
 
-## How to Add a Model
+---
 
-1. Create a file in `app/models/`, e.g. `app/models/product.py`:
+## Documentation
 
-```python
-from peewee import CharField, DecimalField, IntegerField
-
-from app.database import BaseModel
-
-
-class Product(BaseModel):
-    name = CharField()
-    category = CharField()
-    price = DecimalField(decimal_places=2)
-    stock = IntegerField()
-```
-
-2. Import it in `app/models/__init__.py`:
-
-```python
-from app.models.product import Product
-```
-
-3. Create the table (run once in a Python shell or a setup script):
-
-```python
-from app.database import db
-from app.models.product import Product
-
-db.create_tables([Product])
-```
-
-## How to Add Routes
-
-1. Create a blueprint in `app/routes/`, e.g. `app/routes/products.py`:
-
-```python
-from flask import Blueprint, jsonify
-from playhouse.shortcuts import model_to_dict
-
-from app.models.product import Product
-
-products_bp = Blueprint("products", __name__)
-
-
-@products_bp.route("/products")
-def list_products():
-    products = Product.select()
-    return jsonify([model_to_dict(p) for p in products])
-```
-
-2. Register it in `app/routes/__init__.py`:
-
-```python
-def register_routes(app):
-    from app.routes.products import products_bp
-    app.register_blueprint(products_bp)
-```
-
-## How to Load CSV Data
-
-```python
-import csv
-from peewee import chunked
-from app.database import db
-from app.models.product import Product
-
-def load_csv(filepath):
-    with open(filepath, newline="") as f:
-        reader = csv.DictReader(f)
-        rows = list(reader)
-
-    with db.atomic():
-        for batch in chunked(rows, 100):
-            Product.insert_many(batch).execute()
-```
-
-## Useful Peewee Patterns
-
-```python
-from peewee import fn
-from playhouse.shortcuts import model_to_dict
-
-# Select all
-products = Product.select()
-
-# Filter
-cheap = Product.select().where(Product.price < 10)
-
-# Get by ID
-p = Product.get_by_id(1)
-
-# Create
-Product.create(name="Widget", category="Tools", price=9.99, stock=50)
-
-# Convert to dict (great for JSON responses)
-model_to_dict(p)
-
-# Aggregations
-avg_price = Product.select(fn.AVG(Product.price)).scalar()
-total = Product.select(fn.SUM(Product.stock)).scalar()
-
-# Group by
-from peewee import fn
-query = (Product
-         .select(Product.category, fn.COUNT(Product.id).alias("count"))
-         .group_by(Product.category))
-```
-
-## Tips
-
-- Use `model_to_dict` from `playhouse.shortcuts` to convert model instances to dictionaries for JSON responses.
-- Wrap bulk inserts in `db.atomic()` for transactional safety and performance.
-- The template uses `teardown_appcontext` for connection cleanup, so connections are closed even when requests fail.
-- Check `.env.example` for all available configuration options.
+| Document | Description |
+|---|---|
+| [docs/API_REFERENCE.md](docs/API_REFERENCE.md) | All endpoints, request/response shapes, error codes |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design and component diagram |
+| [docs/RUNBOOK.md](docs/RUNBOOK.md) | On-call runbook for each alert type |
+| [docs/CAPACITY.md](docs/CAPACITY.md) | Load tiers, scaling signals, and saturation thresholds |
+| [docs/FAILURE_EDGE_CASES.md](docs/FAILURE_EDGE_CASES.md) | Error handling for every endpoint and dependency |
+| [DECISIONS.md](DECISIONS.md) | Key architectural decisions and rationale |
