@@ -2,6 +2,8 @@
 
 This runbook covers first-response workflows for GhostLink operational and cyber-defense alerts.
 
+## Failure Modes
+
 ## 1) ServiceDown Alert Fires
 
 ### Symptoms

@@ -1,0 +1,5 @@
+2026-04-05T04:17:32Z canary=health-demo status=502 latency=0.045527
+2026-04-05T04:17:32Z canary=promo-demo status=502 latency=0.040679
+2026-04-05T04:17:33Z canary=checkout-demo status=502 latency=0.037453
+2026-04-05T04:17:33Z canary=dashboard-demo status=502 latency=0.039888
+2026-04-05T04:17:33Z canary=support-demo status=502 latency=0.031542

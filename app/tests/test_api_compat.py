@@ -95,3 +95,36 @@ def test_events_endpoints_compat(client, sample_url):
 
     by_type_response = client.get("/events?event_type=click")
     assert by_type_response.status_code == 200
+
+
+def test_create_user_api(client):
+    response = client.post(
+        "/users",
+        json={"username": "integration_user", "email": "integration_user@example.com"},
+    )
+    assert response.status_code == 201
+
+
+def test_create_url_api(client, sample_user):
+    response = client.post(
+        "/urls",
+        json={
+            "original_url": "https://example.com/integration",
+            "title": "Integration URL",
+            "user_id": sample_user.id,
+        },
+    )
+    assert response.status_code == 201
+
+
+def test_create_event_api(client, sample_url):
+    response = client.post(
+        "/events",
+        json={
+            "url_id": sample_url.id,
+            "user_id": sample_url.user_id,
+            "event_type": "click",
+            "details": {"source": "integration"},
+        },
+    )
+    assert response.status_code == 201
