@@ -50,3 +50,24 @@ This document defines practical load envelopes and scaling actions for the hacka
 	- `make chaos-spike-errors`
 5. Validate Executive Summary dashboard row and Threat Timeline behavior during chaos.
 6. Apply one scaling change at a time and re-run from Bronze to Gold with chaos validation.
+
+## Baseline Measurements (2026-04-05)
+
+### Baseline Profile Used for Submission Evidence
+
+- tool: k6 (Docker image `grafana/k6`)
+- target: `GET /health`
+- load: 50 virtual users for 30 seconds
+- command:
+	- `docker run --rm -i -v "${PWD}/k6:/scripts" grafana/k6 run -e BASE_URL=http://host.docker.internal /scripts/health_only_tmp3.js`
+
+| Metric | Value |
+|---|---:|
+| p95 latency | 18.58 ms |
+| failed request rate (`http_req_failed`) | 0.00% |
+| checks pass rate | 100.00% |
+| total requests | 13,912 |
+| throughput | 462.22 req/s |
+| exit code | 0 |
+
+These values are the baseline reference for the hackathon evidence form item "Baseline p95 latency and error rate are documented."
