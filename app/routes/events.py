@@ -114,7 +114,7 @@ def create_event():
     # Accept referrer at top level or nested inside details dict.
     details = data.get("details")
     if details is not None and not isinstance(details, dict):
-        return jsonify({"error": "Invalid details, must be an object", "code": 400}), 400
+        return jsonify({"error": "details must be a JSON object", "code": 422}), 422
     if details is None:
         details = {}
 
