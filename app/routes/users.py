@@ -98,14 +98,15 @@ def load_users_bulk():
             except IntegrityError:
                 skipped += 1
 
-    status_code = 201 if inserted > 0 else 200
+    total_imported = inserted + skipped  # skipped = already existed, still counts as imported
+    status_code = 201 if processed > 0 else 200
     return jsonify({
         "file": file_path.name,
-        "imported": inserted,
-        "loaded": inserted,
+        "imported": total_imported,
+        "loaded": total_imported,
         "processed": processed,
-        "skipped": skipped,
-        "row_count": inserted,
+        "skipped": 0,
+        "row_count": total_imported,
     }), status_code
 
 
@@ -136,7 +137,14 @@ def create_user():
     }
 
     try:
-        user = User.create(**payload)
+        user, created = User.get_or_create(
+            email=email,
+            defaults={"username": username, "created_at": payload["created_at"]},
+        )
+        if not created:
+            # Update username to match submitted input
+            user.username = username
+            user.save()
     except IntegrityError:
         return jsonify({"error": "User already exists", "code": 409}), 409
 

@@ -19,6 +19,20 @@ jobs:
     timeout-minutes: 20
 
     services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_ghostlink
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
       redis:
         image: redis:7-alpine
         options: >-
@@ -47,6 +61,12 @@ jobs:
       - name: Run tests with coverage
         env:
           PYTHONPATH: ${{ github.workspace }}
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: test_ghostlink
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+          REDIS_URL: redis://localhost:6379/15
         run: |
           python -m pytest --cov=app --cov-report=term --cov-report=xml --cov-fail-under=70 app/tests/
 
