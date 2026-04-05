@@ -2,8 +2,9 @@ import time
 from urllib.parse import urlparse
 
 from flask import Blueprint, jsonify, redirect, request
-from peewee import IntegrityError
+from peewee import IntegrityError, PostgresqlDatabase
 
+from app.database import db
 from app.models.event import Event
 from app.models.url import Url
 from app.models.user import User
@@ -103,6 +104,47 @@ def url_to_dict(url):
     }
 
 
+def _rollback_if_needed():
+    try:
+        if not db.is_closed():
+            db.rollback()
+    except Exception:
+        pass
+
+
+def _reset_url_id_sequence():
+    db_obj = getattr(db, "obj", None)
+    if not isinstance(db_obj, PostgresqlDatabase):
+        return False
+
+    try:
+        db.execute_sql(
+            "SELECT setval("
+            "pg_get_serial_sequence('urls', 'id'), "
+            "COALESCE((SELECT MAX(id) FROM urls), 1), "
+            "(SELECT COALESCE(MAX(id), 0) FROM urls) > 0"
+            ")"
+        )
+        return True
+    except Exception:
+        return False
+
+
+def _create_url_with_sequence_recovery(**payload):
+    try:
+        return Url.create(**payload)
+    except IntegrityError:
+        _rollback_if_needed()
+        if not _reset_url_id_sequence():
+            raise
+
+    try:
+        return Url.create(**payload)
+    except IntegrityError:
+        _rollback_if_needed()
+        raise
+
+
 @urls_bp.route("/shorten", methods=["POST"])
 def shorten_url():
     data, error_response = parse_json_object(required=True)
@@ -139,7 +181,7 @@ def shorten_url():
             return jsonify({"error": "Failed to generate short code", "code": 500}), 500
 
     try:
-        url = Url.create(
+        url = _create_url_with_sequence_recovery(
             user_id=user_id,
             short_code=short_code,
             original_url=original_url,
@@ -194,7 +236,7 @@ def create_url():
             return jsonify({"error": "Failed to generate short code", "code": 500}), 500
 
     try:
-        url = Url.create(
+        url = _create_url_with_sequence_recovery(
             user_id=user_id,
             short_code=short_code,
             original_url=original_url,

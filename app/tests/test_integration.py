@@ -1,10 +1,13 @@
 import json
 import os
 import tempfile
+from unittest.mock import patch
 
 import pytest
+from peewee import IntegrityError
 
 from app.models import Event, Url, User
+from app.routes import urls as urls_routes
 from app.services import cache, security
 
 
@@ -576,3 +579,32 @@ class TestHiddenHintCoverage:
         data = response.get_json()
         assert data["error"] == "Missing request body"
         assert data["code"] == 400
+
+    def test_create_url_sequence_drift_recovers_successfully(self, client, sample_user, monkeypatch):
+        """Primary-key sequence drift should recover and still create URL."""
+        original_create = Url.create
+        call_count = {"value": 0}
+
+        def create_with_first_pk_collision(**kwargs):
+            call_count["value"] += 1
+            if call_count["value"] == 1:
+                raise IntegrityError(
+                    'duplicate key value violates unique constraint "urls_pkey"'
+                )
+            return original_create(**kwargs)
+
+        monkeypatch.setattr(urls_routes, "_reset_url_id_sequence", lambda: True)
+
+        with patch.object(Url, "create", side_effect=create_with_first_pk_collision):
+            response = client.post(
+                "/urls",
+                json={
+                    "original_url": "https://example.com/sequence-drift-recovery",
+                    "user_id": sample_user.id,
+                },
+            )
+
+        assert response.status_code == 201
+        payload = response.get_json()
+        assert "id" in payload
+        assert call_count["value"] == 2
