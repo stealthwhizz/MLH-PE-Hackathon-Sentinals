@@ -200,6 +200,12 @@ def get_url(url_id):
     return jsonify(url_to_dict(url)), 200
 
 
+@urls_bp.route("/urls/<short_code>", methods=["GET"])
+def redirect_by_shortcode(short_code):
+    """Redirect via /urls/<short_code> path."""
+    return redirect_url(short_code)
+
+
 @urls_bp.route("/urls/<int:url_id>", methods=["PATCH", "PUT"])
 def update_url(url_id):
     data = request.get_json(silent=True)
