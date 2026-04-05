@@ -59,62 +59,49 @@ def list_events():
     return jsonify(events), 200
 
 
+_EVENT_CREATE_FIELDS = {"url_id", "user_id", "event_type", "details", "referrer"}
+
+
 @events_bp.route("/events", methods=["POST"])
 def create_event():
-    data, error_response = _parse_json_object()
-    if error_response:
-        return error_response
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Missing request body", "code": 400}), 400
 
-    raw_event_type = data.get("event_type")
-    if not isinstance(raw_event_type, str):
-        return jsonify({"error": "Missing event_type", "code": 400}), 400
-
-    event_type = raw_event_type.strip()
-    if not event_type:
-        return jsonify({"error": "Missing event_type", "code": 400}), 400
-
+    # url_id validation
     url_id = data.get("url_id")
     if url_id is None:
         return jsonify({"error": "Missing url_id", "code": 400}), 400
-
-    if isinstance(url_id, bool):
+    if isinstance(url_id, bool) or not isinstance(url_id, int):
         return jsonify({"error": "Invalid url_id", "code": 400}), 400
-
-    try:
-        url_id = int(url_id)
-    except (TypeError, ValueError):
-        return jsonify({"error": "Invalid url_id", "code": 400}), 400
-
     if url_id <= 0:
         return jsonify({"error": "Invalid url_id", "code": 400}), 400
-
     if not Url.select().where(Url.id == url_id).exists():
-        return jsonify({"error": "URL not found", "code": 404}), 404
+        return jsonify({"error": "invalid url_id"}), 404
 
+    # event_type validation
+    raw_event_type = data.get("event_type")
+    if not isinstance(raw_event_type, str) or not raw_event_type.strip():
+        return jsonify({"error": "Missing event_type", "code": 400}), 400
+    event_type = raw_event_type.strip()
+
+    # user_id validation (optional)
     user_id = data.get("user_id")
     if user_id is not None:
-        if isinstance(user_id, bool):
+        if isinstance(user_id, bool) or not isinstance(user_id, int):
             return jsonify({"error": "Invalid user_id", "code": 400}), 400
-
-        try:
-            user_id = int(user_id)
-        except (TypeError, ValueError):
-            return jsonify({"error": "Invalid user_id", "code": 400}), 400
-
         if user_id <= 0:
             return jsonify({"error": "Invalid user_id", "code": 400}), 400
-
         if not User.select().where(User.id == user_id).exists():
-            return jsonify({"error": "invalid user_id", "code": 404}), 404
-
+            return jsonify({"error": "invalid user_id"}), 404
         url_owner_id = Url.select(Url.user_id).where(Url.id == url_id).scalar()
         if url_owner_id is not None and user_id != url_owner_id:
             return jsonify({"error": "Forbidden", "code": 403}), 403
 
-    # Accept referrer at top level or nested inside details dict.
+    # details validation
     details = data.get("details")
     if details is not None and not isinstance(details, dict):
-        return jsonify({"error": "details must be an object", "code": 400}), 400
+        return jsonify({"error": "details must be an object"}), 400
     if details is None:
         details = {}
 
