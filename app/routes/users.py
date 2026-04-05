@@ -136,8 +136,14 @@ def create_user():
     if not isinstance(data, dict):
         return jsonify({"error": "Missing request body", "code": 400}), 400
 
-    username = (data.get("username") or "").strip()
-    email = (data.get("email") or "").strip()
+    username = data.get("username")
+    email = data.get("email")
+
+    if not isinstance(username, str) or not isinstance(email, str):
+        return jsonify({"error": "Missing username or email", "code": 400}), 400
+
+    username = username.strip()
+    email = email.strip()
 
     if not username or not email:
         return jsonify({"error": "Missing username or email", "code": 400}), 400
@@ -173,16 +179,16 @@ def update_user(user_id):
         return jsonify({"error": "Not found", "code": 404}), 404
 
     if "username" in data:
-        username = (data.get("username") or "").strip()
-        if not username:
+        username = data.get("username")
+        if not isinstance(username, str) or not username.strip():
             return jsonify({"error": "Invalid username", "code": 400}), 400
-        user.username = username
+        user.username = username.strip()
 
     if "email" in data:
-        email = (data.get("email") or "").strip()
-        if not email:
+        email = data.get("email")
+        if not isinstance(email, str) or not email.strip():
             return jsonify({"error": "Invalid email", "code": 400}), 400
-        user.email = email
+        user.email = email.strip()
 
     try:
         user.save()
