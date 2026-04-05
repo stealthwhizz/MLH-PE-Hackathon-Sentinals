@@ -121,3 +121,29 @@ This runbook covers first-response workflows for GhostLink operational and cyber
 1. Review highest `ghostlink_risk_score` series in Prometheus or Grafana Explore.
 2. Quarantine high-risk short codes involved in probe spikes.
 3. Trigger cleanup and re-check risk totals after 10 minutes.
+
+## Multi-instance Compose Evidence (2026-04-05)
+
+This section captures verification for the hackathon evidence item "Multi-instance compose setup".
+
+### Compose Configuration Proof
+
+- `docker-compose.yml` defines two app replicas: `app1` and `app2`
+- `nginx/nginx.conf` load-balances both replicas via `upstream ghostlink_backend`
+
+### Runtime Verification Commands
+
+```bash
+docker compose config --services
+docker compose ps --format "table {{.Service}}\t{{.Name}}\t{{.State}}\t{{.Status}}"
+```
+
+### Verified Runtime State
+
+| Service | Container | State | Status |
+|---|---|---|---|
+| app1 | ghostlink-app1 | running | Up 34 minutes (healthy) |
+| app2 | ghostlink-app2 | running | Up 34 minutes (healthy) |
+| nginx | ghostlink-nginx | running | Up 34 minutes (healthy) |
+
+Result: multi-instance backend (`app1` + `app2`) is active and healthy behind Nginx in Docker Compose.

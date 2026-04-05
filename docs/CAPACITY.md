@@ -92,3 +92,25 @@ These values are the baseline reference for the hackathon evidence form item "Ba
 | exit code | 0 |
 
 These values are the Silver reference for the hackathon evidence form item "Evidence demonstrates successful load at 200 concurrent users."
+
+## Gold Measurements (2026-04-05)
+
+### 500 Concurrent Users or 100 RPS Evidence
+
+- tool: k6 (Docker image `grafana/k6`)
+- target: `GET /health`
+- load: 500 virtual users for 30 seconds
+- command:
+	- `docker run --rm -i -v "${PWD}/k6:/scripts" grafana/k6 run -e BASE_URL=http://host.docker.internal /scripts/gold_500_health_tmp.js`
+
+| Metric | Value |
+|---|---:|
+| concurrent users | 500 |
+| throughput (`http_reqs`) | 1,853.98 req/s |
+| total requests | 56,354 |
+| p95 latency | 320.66 ms |
+| failed request rate (`http_req_failed`) | 0.08% |
+| checks pass rate | 99.91% |
+| exit code | 0 |
+
+These values are the Gold reference for the hackathon evidence form item "Evidence demonstrates tsunami-level throughput" (requirement: 500 concurrent users or >=100 RPS).
