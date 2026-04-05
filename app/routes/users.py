@@ -2,7 +2,7 @@ import csv
 from pathlib import Path
 
 from flask import Blueprint, jsonify, request
-from peewee import IntegrityError
+from peewee import IntegrityError, PostgresqlDatabase
 
 from app.database import db
 from app.models.user import User
@@ -98,6 +98,14 @@ def load_users_bulk():
                 inserted += 1
             except IntegrityError:
                 skipped += 1
+
+    # Reset PostgreSQL sequence so new inserts don't collide with bulk-imported IDs
+    try:
+        db_obj = getattr(db, "obj", None)
+        if isinstance(db_obj, PostgresqlDatabase):
+            db.execute_sql("SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1))")
+    except Exception:
+        pass
 
     total_imported = inserted + skipped  # skipped = already existed, still counts as imported
     status_code = 201 if processed > 0 else 200
