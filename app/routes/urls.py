@@ -101,6 +101,9 @@ def create_url():
     if not original_url:
         return jsonify({"error": "Missing original_url", "code": 400}), 400
 
+    if not is_valid_url(original_url):
+        return jsonify({"error": "Invalid URL", "code": 422}), 422
+
     user_id = data.get("user_id")
     title = data.get("title")
     custom_code = data.get("short_code")
@@ -123,6 +126,7 @@ def create_url():
             title=title,
             is_active=True,
         )
+        Event.create(url_id=url.id, user_id=user_id, event_type="created")
         cache.cache_url(short_code, original_url)
         compute_risk_score(url.id)
         increment_urls_created()
