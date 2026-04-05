@@ -47,7 +47,7 @@ def list_users():
     total = User.select().count()
     query = User.select().order_by(User.id)
     users = [user_to_dict(u) for u in query.paginate(page, per_page)]
-    return jsonify({"data": users, "page": page, "per_page": per_page, "total": total}), 200
+    return jsonify(users), 200
 
 
 @users_bp.route("/users/bulk", methods=["POST"])
