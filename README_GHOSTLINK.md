@@ -49,22 +49,47 @@ Exposes at `GET /metrics` for Prometheus scraping:
 
 ## API Endpoints
 
-For a concise endpoint matrix with curl examples and status-code behavior, see `docs/API_REFERENCE.md`.
+Endpoint wording style is standardized across docs:
 
-### POST /shorten
-Create a shortened URL.
+- `Request Example`
+- `Success Response`
+- `Error Responses`
 
-**Request:**
+Canonical request/response templates and complete error details live in `docs/API_REFERENCE.md`.
+
+### Endpoint Matrix
+
+| Method | Path | Success | Common Errors | Notes |
+|---|---|---:|---|---|
+| `POST` | `/shorten` | `201` | `400`, `409`, `422`, `500` | Create short URL with compact response |
+| `POST` | `/urls` | `201` | `400`, `409`, `422`, `500` | Create short URL with full URL record (`user_id` required) |
+| `GET` | `/{short_code}` | `302` | `404`, `410` | Primary redirect route |
+| `GET` | `/r/{short_code}` | `302` | `404`, `410` | Redirect alias |
+| `GET` | `/urls/{short_code}` | `302` | `404`, `410` | Redirect alias |
+| `GET` | `/urls` | `200` | - | Supports `user_id` and `is_active` filtering |
+| `GET` | `/urls/{id}` | `200` | `404` | Fetch URL by ID |
+| `PATCH`, `PUT` | `/urls/{id}` | `200` | `400`, `403`, `404`, `422` | Update mutable URL fields |
+| `DELETE` | `/urls/{id}` | `200` | `400`, `403`, `404` | Soft delete URL |
+| `GET` | `/urls/{id}/risk` | `200` | `404` | Risk score and signal details |
+| `GET` | `/health` | `200` | `503` | Includes release metadata and feature flags |
+| `GET` | `/metrics` | `200` | - | Prometheus exposition format |
+| `GET` | `/health-demo`, `/promo-demo`, `/checkout-demo`, `/dashboard-demo`, `/support-demo` | `200` | - | Synthetic canary routes |
+
+### Response Template Example (POST /shorten)
+
+Request Example:
+
 ```json
 {
   "original_url": "https://example.com",
-  "short_code": "custom1",  // optional
-  "title": "Example Site",   // optional
-  "user_id": 1               // optional
+  "short_code": "custom1",
+  "title": "Example Site",
+  "user_id": 1
 }
 ```
 
-**Response (201):**
+Success Response (`201`):
+
 ```json
 {
   "id": 1,
@@ -72,99 +97,12 @@ Create a shortened URL.
 }
 ```
 
-**Errors:**
-- 400: Missing request body / Missing original_url
-- 409: Short code already exists
-- 422: Invalid URL format
+Error Responses:
 
-### GET /<short_code>
-Redirect to the original URL.
-
-**Response:**
-- 302: Redirect to original URL
-- 404: Short code not found
-- 410: Link inactive (soft deleted)
-
-### GET /urls
-List all URLs (optionally filter by user_id).
-
-**Query params:**
-- `user_id` (optional): Filter by user
-
-**Response (200):**
-```json
-[
-  {
-    "id": 1,
-    "short_code": "abc123",
-    "original_url": "https://example.com",
-    "title": "Example",
-    "is_active": true,
-    "created_at": "2026-04-04T12:00:00",
-    "updated_at": "2026-04-04T12:00:00"
-  }
-]
-```
-
-### PATCH /urls/<id>
-Update a URL.
-
-**Request:**
-```json
-{
-  "title": "New Title",          // optional
-  "original_url": "https://...", // optional
-  "is_active": false             // optional
-}
-```
-
-**Response (200):**
-```json
-{"message": "updated"}
-```
-
-**Errors:**
-- 400: Missing request body
-- 404: URL not found
-- 422: Invalid URL format
-
-### DELETE /urls/<id>
-Soft delete a URL (sets is_active=False).
-
-**Response (200):**
-```json
-{"message": "deleted"}
-```
-
-**Errors:**
-- 404: URL not found
-
-### GET /health
-Health check with dependency status.
-
-**Response (200):**
-```json
-{
-  "status": "ok",
-  "db": "ok",
-  "redis": "ok"
-}
-```
-
-**Response (503 - Degraded):**
-```json
-{
-  "status": "degraded",
-  "db": "error",
-  "redis": "ok"
-}
-```
-
-### GET /metrics
-Prometheus metrics in text format.
-
-### GET /urls/<id>/risk
-Return computed risk score, tier, and active signals for a URL.
+- `400` missing body, malformed JSON, or invalid field type
+- `409` short code already exists
+- `422` invalid URL format
+- `500` short code generation failure
 
 ## Tech Stack
 
