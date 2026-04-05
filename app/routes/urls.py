@@ -190,7 +190,7 @@ def get_url(url_id):
 @urls_bp.route("/urls/<int:url_id>", methods=["PATCH", "PUT"])
 def update_url(url_id):
     data = request.get_json(silent=True)
-    if data is None:
+    if not isinstance(data, dict):
         return jsonify({"error": "Missing request body", "code": 400}), 400
 
     url = Url.select().where(Url.id == url_id).first()
@@ -198,7 +198,7 @@ def update_url(url_id):
         return jsonify({"error": "Not found", "code": 404}), 404
 
     if "original_url" in data:
-        if not is_valid_url(data["original_url"]):
+        if not isinstance(data["original_url"], str) or not is_valid_url(data["original_url"]):
             return jsonify({"error": "Invalid URL", "code": 422}), 422
         url.original_url = data["original_url"]
         cache.delete_cached_url(url.short_code)
