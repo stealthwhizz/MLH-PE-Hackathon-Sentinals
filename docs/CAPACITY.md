@@ -71,3 +71,24 @@ This document defines practical load envelopes and scaling actions for the hacka
 | exit code | 0 |
 
 These values are the baseline reference for the hackathon evidence form item "Baseline p95 latency and error rate are documented."
+
+## Silver Measurements (2026-04-05)
+
+### 200 Concurrent Users Evidence
+
+- tool: k6 (Docker image `grafana/k6`)
+- target: `GET /health`
+- load: 200 virtual users for 30 seconds
+- command:
+	- `docker run --rm -i -v "${PWD}/k6:/scripts" grafana/k6 run -e BASE_URL=http://host.docker.internal /scripts/silver_200_health_tmp.js`
+
+| Metric | Value |
+|---|---:|
+| p95 latency | 45.48 ms |
+| failed request rate (`http_req_failed`) | 0.00% |
+| checks pass rate | 100.00% |
+| total requests | 53,512 |
+| throughput | 1,777.63 req/s |
+| exit code | 0 |
+
+These values are the Silver reference for the hackathon evidence form item "Evidence demonstrates successful load at 200 concurrent users."
