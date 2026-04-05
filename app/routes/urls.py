@@ -101,6 +101,9 @@ def create_url():
     if not original_url:
         return jsonify({"error": "Missing original_url", "code": 400}), 400
 
+    if not is_valid_url(original_url):
+        return jsonify({"error": "Invalid URL", "code": 422}), 422
+
     user_id = data.get("user_id")
     title = data.get("title")
     custom_code = data.get("short_code")
@@ -123,6 +126,7 @@ def create_url():
             title=title,
             is_active=True,
         )
+        Event.create(url_id=url.id, user_id=user_id, event_type="created")
         cache.cache_url(short_code, original_url)
         compute_risk_score(url.id)
         increment_urls_created()
@@ -163,7 +167,6 @@ def redirect_url(short_code):
 
     if not url.is_active:
         increment_ghost_probes()
-        Event.create(url_id=url.id, user_id=url.user_id, event_type="ghost_probe")
         record_request_fingerprint(short_code=short_code, status_code=410, client_ip=client_ip, user_agent=user_agent, is_ghost_probe=True)
         compute_risk_score(url.id)
         return jsonify({"error": "Link inactive", "code": 410}), 410
