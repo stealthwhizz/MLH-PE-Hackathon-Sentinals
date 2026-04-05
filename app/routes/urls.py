@@ -60,7 +60,7 @@ def shorten_url():
     if not isinstance(original_url, str) or not is_valid_url(original_url):
         return jsonify({"error": "Invalid URL", "code": 422}), 422
 
-    custom_code = data.get("short_code")
+    custom_code = data.get("short_code") or data.get("shortcode")
     user_id = data.get("user_id")
     title = data.get("title")
 
@@ -106,7 +106,7 @@ def create_url():
 
     user_id = data.get("user_id")
     title = data.get("title")
-    custom_code = data.get("short_code")
+    custom_code = data.get("short_code") or data.get("shortcode")
 
     if custom_code:
         if not shortener.is_code_available(custom_code):
@@ -273,3 +273,9 @@ def list_urls():
 
     urls = [url_to_dict(u) for u in query]
     return jsonify(urls), 200
+
+
+@urls_bp.route("/r/<short_code>", methods=["GET"])
+def redirect_url_r(short_code):
+    """Alias redirect route at /r/<short_code>."""
+    return redirect_url(short_code)
