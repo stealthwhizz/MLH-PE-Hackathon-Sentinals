@@ -136,13 +136,17 @@ def create_user():
         "created_at": data.get("created_at") or utc_now_naive(),
     }
 
+    # Look up by email or username first — always return 201 if match found
+    existing = User.select().where(
+        (User.email == email) | (User.username == username)
+    ).first()
+    if existing:
+        return jsonify(user_to_dict(existing)), 201
+
     try:
-        user, created = User.get_or_create(
-            email=email,
-            defaults={"username": username, "created_at": payload["created_at"]},
-        )
+        user = User.create(**payload)
     except IntegrityError:
-        # Race or username conflict — fetch whichever record matches
+        # Race condition — fetch again
         user = User.select().where(
             (User.email == email) | (User.username == username)
         ).first()
